@@ -1,0 +1,85 @@
+
+#include <string.h>
+#include <stdio.h>
+
+char buffer[13];
+
+int servoPin = 7;
+int servoPin2 = 6;
+
+int pulseWidth ;
+int pulseWidth2 ;
+
+
+void setup()
+{
+    Serial.begin(38400) ;
+    pinMode(servoPin, OUTPUT);
+    pinMode(servoPin2, OUTPUT);
+    Serial.flush();
+}
+
+
+
+void loop()
+
+{
+  if (Serial.available() > 0) {
+    int index=0;
+    delay(100); // let the buffer fill up
+
+    
+    int numChar=Serial.available();
+    if (numChar>11) {
+        numChar=11;
+        
+    }
+      while (numChar--) {
+       
+      buffer[index++] = Serial.read();
+      
+      //Serial.println(buffer); //desmarcar para depuración
+    }
+    
+    splitString(buffer);
+    }
+  }
+  
+  void splitString(char* data) {
+    char * parameter; 
+    parameter = strtok (data, ",");
+    while (parameter != NULL) {
+    setPULSE(parameter);
+    parameter = strtok (NULL, ",");
+  }
+ // Clear the text and serial buffers
+  for (int x=0; x<11; x++) {
+    buffer[x]='\0';
+  }
+    Serial.flush();
+}
+
+void setPULSE(char *data) {
+  if ((data[0] == 'A')  ) {
+    int pulseWidth = strtol(data+1, NULL, 10);
+     if (pulseWidth>200){//corrección de las pérdidas de valores de A
+        Serial.print("A");
+        Serial.print(pulseWidth);
+        digitalWrite(servoPin, HIGH);
+        delayMicroseconds(pulseWidth);
+        digitalWrite(servoPin, LOW);
+     }
+  } 
+   if ((data[0] == 'B')  ) {
+     int pulseWidth2 = strtol(data+1, NULL, 10);
+     if (pulseWidth2>200){//corrección de las pérdidas de valores de B
+      Serial.print("B");
+      Serial.println(pulseWidth2);
+      digitalWrite(servoPin2, HIGH);
+      delayMicroseconds(pulseWidth2);
+      digitalWrite(servoPin2, LOW);
+     }
+  
+     
+}
+}

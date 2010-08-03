@@ -1,0 +1,303 @@
+#include <Wire.h>
+#include <string.h>
+#include <stdio.h>
+
+
+uint8_t outbuf[6];
+
+int cnt = 0;
+int ledPin = 13;
+
+int servoPin = 7;
+int servoPin2 = 6;
+
+int pulseWidth = 0;
+int pulseWidth2 = 0;
+int tilt2;
+
+long lastPulse = 0;
+long lastPulse2 = 0;
+
+int z_button = 0;
+int c_button = 0;
+int zz = 0;
+
+int refreshTime = 25;
+
+
+int dtime=10;
+
+#define pwbuffsize 10
+int pwbuff[pwbuffsize];
+int pwbuffpos = 0;
+int pwbuff2[pwbuffsize];
+int pwbuffpos2 = 0;
+
+void setup()
+{
+    Serial.begin(19200) ;
+    Serial.flush();
+    Wire.begin ();
+    nunchuck_setpowerpins(); // use analog pins 2&3 as fake gnd & pwr
+    nunchuck_init ();
+    pinMode(servoPin, OUTPUT);
+    pinMode(servoPin2, OUTPUT);
+
+    Serial.print ("Finished setup\n");
+}
+
+void nunchuck_init()
+{
+    Wire.beginTransmission (0x52);
+    Wire.send (0x40);
+    Wire.send (0x00);  
+    Wire.endTransmission ();
+}
+
+void send_zero()
+{
+    Wire.beginTransmission (0x52);
+    Wire.send (0x00);
+    Wire.endTransmission ();
+}
+
+int t = 0;
+// Uses port C (analog in) pins as power & ground for Nunchuck
+static void nunchuck_setpowerpins()
+{
+#define pwrpin PORTC3
+#define gndpin PORTC2
+    DDRC |= _BV(pwrpin) | _BV(gndpin);
+    PORTC &=~ _BV(gndpin);
+    PORTC |=  _BV(pwrpin);
+    delay(100);  // wait for things to stabilize        
+}
+
+void loop()
+{
+    t++;
+    long last = millis();
+
+    if( t == 1) {
+
+        t = 0;
+
+        Wire.requestFrom (0x52, 6);
+
+        while (Wire.available ()) {
+            outbuf[cnt] = nunchuk_decode_byte (Wire.receive ());
+            digitalWrite (ledPin, HIGH);
+            cnt++;
+        }
+
+        if (cnt >= 5) {
+
+            printNunchuckData();
+
+            int z_button = 0;
+            int c_button = 0;
+
+
+            if ((outbuf[5] >> 0) & 1) 
+                z_button = 1;
+            if ((outbuf[5] >> 1) & 1)
+                c_button = 1;
+
+            switch (c_button) {
+            case 1:
+                switch (z_button) {
+                case 0:
+                    muovi2();
+                    break;
+                case 1:
+                    muovi();
+                    break;
+                }
+                break;
+            case 0:
+                switch (z_button) {
+                case 0:
+                
+                 if (zz==0)
+                {
+                  zz=1;
+                  delay(200);
+                }
+                else if (zz== 1)
+                {
+                  zz=0;
+                }                
+                    delay(200);
+                    break;
+                case 1:
+                if (zz==0)
+                {
+                  zz=1;
+                  delay(200);
+                }
+                else if (zz== 1)
+                {
+                  zz=0;
+                }                
+                    delay(200);
+                    break;
+                }
+                break;
+            }
+        }
+
+        cnt = 0;
+        send_zero();
+
+    } 
+//Serial.println ( zz, DEC); 
+if (zz==0)
+{
+    updateServo();
+}
+    delay(dtime);
+}
+
+
+void updateServo() {
+  
+  if (pulseWidth > 2500)
+         { pulseWidth = 2500;}
+         if (pulseWidth < 600)
+         { pulseWidth = 500;}
+         
+         if (pulseWidth2 > 2100)
+         { pulseWidth2 = 2100;}
+     if (pulseWidth2 < 700)
+         { pulseWidth2 = 700;}    
+
+    if (millis() - lastPulse >= refreshTime) {
+      
+      
+
+        digitalWrite(servoPin, HIGH);
+        delayMicroseconds(pulseWidth);
+        digitalWrite(servoPin, LOW);
+
+        digitalWrite(servoPin2, HIGH);
+        delayMicroseconds(pulseWidth2);
+        digitalWrite(servoPin2, LOW);
+
+        lastPulse = millis();
+    }
+}
+
+int i=0;
+void printNunchuckData()
+{
+    int joy_x_axis = outbuf[0];
+    int joy_y_axis = outbuf[1];
+    int accel_x_axis = outbuf[2]; // * 2 * 2; 
+    int accel_y_axis = outbuf[3]; // * 2 * 2;
+    int accel_z_axis = outbuf[4]; // * 2 * 2;
+
+    int z_button = 0;
+    int c_button = 0;
+
+    if ((outbuf[5] >> 0) & 1) 
+        z_button = 1;
+    if ((outbuf[5] >> 1) & 1)
+        c_button = 1;
+    if ((outbuf[5] >> 2) & 1) 
+        accel_x_axis += 2;
+    if ((outbuf[5] >> 3) & 1)
+        accel_x_axis += 1;
+
+    if ((outbuf[5] >> 4) & 1)
+        accel_y_axis += 2;
+    if ((outbuf[5] >> 5) & 1)
+        accel_y_axis += 1;
+
+    if ((outbuf[5] >> 6) & 1)
+        accel_z_axis += 2;
+    if ((outbuf[5] >> 7) & 1)
+        accel_z_axis += 1;
+
+  
+   
+  
+  Serial.print("A"); 
+  Serial.print ( pulseWidth, DEC);
+  Serial.print (",");
+   
+
+  Serial.print("B"); 
+  Serial.print ( pulseWidth2, DEC);
+  Serial.print ('\0'); 
+  
+//Serial.println ( zz, DEC);  
+ 
+   
+    i++;
+}
+
+char nunchuk_decode_byte (char x)
+{
+    x = (x ^ 0x17) + 0x17;
+    return x;
+}
+
+void muovi (){
+    float tilt = ( outbuf[0]*2*2);
+    float tilt2 = outbuf[1]*2*2;
+
+    tilt = map(tilt ,0, 1024 ,400 ,2500);
+    pulseWidth = tilt ;
+    tilt2 = map(tilt2 ,0, 1024 ,400 ,2300);
+    pulseWidth2 = tilt2 ;
+
+    pwbuff[pwbuffpos] = pulseWidth;
+    pwbuff2[pwbuffpos2] = pulseWidth2;
+    
+    if( ++pwbuffpos == pwbuffsize ) pwbuffpos = 0;
+    if( ++pwbuffpos2 == pwbuffsize ) pwbuffpos2 = 0;
+
+
+    pulseWidth=0;
+    pulseWidth2=0;
+
+    for( int p=0; p<pwbuffsize; p++ ){
+        pulseWidth += pwbuff[p];
+        pulseWidth2 += pwbuff2[p];
+    }
+
+    pulseWidth /= pwbuffsize;
+    pulseWidth2 /= pwbuffsize;
+  
+   
+
+}
+void muovi2 (){
+    float tilt1 = outbuf[2]*2*2;
+    float tilt12 = outbuf[3]*2*2;
+
+    tilt1 = map(tilt1, 260,660,400,2500);
+    pulseWidth = tilt1 ;
+
+    tilt12 = map(tilt12, 260,620,400,2500);
+    pulseWidth2 = tilt12 ;
+
+    pwbuff[pwbuffpos] = pulseWidth;
+    pwbuff2[pwbuffpos2] = pulseWidth2;
+    
+    if( ++pwbuffpos == pwbuffsize ) pwbuffpos = 0;
+    if( ++pwbuffpos2 == pwbuffsize ) pwbuffpos2 = 0;
+
+
+    pulseWidth=0;
+    pulseWidth2=0;
+
+    for( int p=0; p<pwbuffsize; p++ ){
+        pulseWidth += pwbuff[p];
+        pulseWidth2 += pwbuff2[p];
+    }
+
+    pulseWidth /= pwbuffsize;
+    pulseWidth2 /= pwbuffsize;
+
+}
