@@ -237,14 +237,14 @@ void muovi2 (){
     float tilt12 = outbuf[3]*2*2;
 
     tilt1 = map(tilt1, 260,660,300,2500);
-    /* no he conseguido mapear hasta 260 ¿?
+    /* no he conseguido mapear hasta 260 Â¿?
     por eso lo corrijo con este if */
     if (tilt1 < 500)
     {tilt1 = 250;}
     pulseWidth = tilt1 ;
 
     tilt12 = map(tilt12, 260,620,300,2500);
-    /* no he conseguido mapear hasta 260 ¿?
+    /* no he conseguido mapear hasta 260 Â¿?
     por eso lo corrijo con este if */
      if (tilt2 < 500)
     {tilt2 = 250;}
