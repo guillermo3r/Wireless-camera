@@ -1,3 +1,6 @@
+/*Emisor Final.This software was adapted and developed by Guillermo Vigal 2010It is based in http://www.solarbotics.com/assets/documentation/arduino_starter_kit_manual.pdfhttp://www.windmeadow.com/node/42?page=1You can modify or use it freely with the lonely restriction ofquoting the author*/ 
+
+
 #include <Wire.h>
 #include <string.h>
 #include <stdio.h>
